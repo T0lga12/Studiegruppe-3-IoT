@@ -3,6 +3,8 @@ from machine import Pin,ADC
 from time import sleep
 from machine import PWM
 import adafruit_gps_main
+from battery_display import batteryDisplay
+import tm1637
 
 analog_pin = ADC(Pin(34))
 analog_pin.atten(ADC.ATTN_11DB)
@@ -13,6 +15,7 @@ analog_pin.width(ADC.WIDTH_12BIT)
 red_LED = Pin(15, Pin.OUT) # instans af Pin klassen AKA et Pin objekt
 B_PIN = 25
 buzzer = PWM(Pin(B_PIN, Pin.OUT),duty=0)
+tm = tm1637.TM1637(clk=Pin(2), dio=Pin(4))
 
 while True:
     try:        
@@ -23,10 +26,14 @@ while True:
         battery_percentage = volts*100 - 320
         print("Volt:", volts, "v")
         print("The Batter percentage is:", battery_percentage / 2, "%")
+        realBattery = battery_percentage / 2
         
         mqtt.web_print(battery_percentage / 2, 'Tolga12/feeds/Min Feed/csv') #Vigtig for feed/dashboard
+        tm.number(int(realBattery))
         sleep(4)
+
         
+
     #batteri
     #GPS       
         adafruit_gps_main.GPS()  
