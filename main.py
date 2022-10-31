@@ -3,26 +3,68 @@ from machine import Pin,ADC
 from time import sleep
 from machine import PWM
 import adafruit_gps_main
-from battery_display import batteryDisplay
 import tm1637
+import neopixel
+import _thread
 
 analog_pin = ADC(Pin(34))
 analog_pin.atten(ADC.ATTN_11DB)
 analog_pin.width(ADC.WIDTH_12BIT)
 
+p = 15
+n = 12
+
+np = neopixel.NeoPixel(Pin(p), n)
+
+Tilt = Pin(17, Pin.IN)
+counter = 0
+
+first = Tilt.value()
+sleep(0.1)
+second = Tilt.value()
+
 
 # Her kan i placere globale varibaler, og instanser af klasser
-red_LED = Pin(15, Pin.OUT) # instans af Pin klassen AKA et Pin objekt
-B_PIN = 25
-buzzer = PWM(Pin(B_PIN, Pin.OUT),duty=0)
+# instans af Pin klassen AKA et Pin objekt
 tm = tm1637.TM1637(clk=Pin(2), dio=Pin(4))
 
+def clear_neopixel():
+    for i in range(n):
+        np[i] = (0, 0, 0)
+        np.write()
+
+def tilt_neopixel():
+    while True:
+        first = Tilt.value()
+        sleep(0.1)
+        second = Tilt.value()
+        global counter
+        
+        print("TEST LOOP1")
+        if first == 1 and second == 0:
+            print("TEST LYS")
+            counter += 1
+            if counter >= 1:
+                for i in range(counter):
+                    np[i] = (0, 170, 0)
+                    np.write()
+            if counter >= 12:
+                for i in range(n):
+                    np[i] = (170, 0, 0)
+                    np.write()
+            sleep(5)
+
+clear_neopixel()
+_thread.start_new_thread(tilt_neopixel, ())
+
 while True:
-    try:        
+    print("TEST LOOP2")
+    try:
         # Jeres kode skal starte her
-    #batteri
+
+        #batteri
         analog_val = analog_pin.read()
-        volts = (analog_val * 0.00094638)*5
+        volts = (analog_val * 0.00095545)*5
         battery_percentage = volts*100 - 320
         print("Volt:", volts, "v")
         print("The Batter percentage is:", battery_percentage / 2, "%")
@@ -32,14 +74,10 @@ while True:
         tm.number(int(realBattery))
         sleep(4)
 
-        
-
-    #batteri
-    #GPS       
-        adafruit_gps_main.GPS()  
+        #GPS       
+        adafruit_gps_main.GPS()
+    
            
-        if mqtt.besked == "svar_tilbage":
-            mqtt.web_Print("ESP32 her!")
         # Jeres kode skal slutte her
         sleep(0.5)
         if len(mqtt.besked) != 0: # Her nulstilles indkommende beskeder
