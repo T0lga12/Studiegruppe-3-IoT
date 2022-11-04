@@ -2,8 +2,9 @@ from machine import Pin
 from time import sleep
 import neopixel
 import time
+import _thread
 
-p = 16
+p = 15
 n = 12
 
 np = neopixel.NeoPixel(Pin(p), n)
@@ -17,12 +18,14 @@ def clear_neopixel():
         np.write()
 
 def tilt_neopixel():
-    first = Tilt.value()
-    sleep(0.1)
-    second = Tilt.value()
-    global counter 
+    while True:
+        first = Tilt.value()
+        sleep(0.1)
+        second = Tilt.value()
+        global counter 
 
-    if first == 1 and second == 0:
+        if first == 1 and second == 0:
+            print("test")
             counter += 1
             if counter >= 1:
                 for i in range(counter):
@@ -36,5 +39,4 @@ def tilt_neopixel():
 
 clear_neopixel()
 
-while True: 
-    tilt_neopixel()
+_thread.start_new_thread(tilt_neopixel, ())

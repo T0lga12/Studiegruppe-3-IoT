@@ -1,45 +1,87 @@
+import _thread
+#Table of context:
+#6 - 13 imported libary
+#14 - 33 Global Variables
+#33 - 37 Clear Neo ring
+#39 - 62 Start Neoring
+#63 - 95 Adafruit GPS
+
 import umqtt_robust2 as mqtt
 from machine import Pin,ADC
 from time import sleep
 from machine import PWM
 import adafruit_gps_main
-from battery_display import batteryDisplay
 import tm1637
+import neopixel
 
 analog_pin = ADC(Pin(34))
 analog_pin.atten(ADC.ATTN_11DB)
 analog_pin.width(ADC.WIDTH_12BIT)
 
+p = 15
+n = 12
 
-# Her kan i placere globale varibaler, og instanser af klasser
-red_LED = Pin(15, Pin.OUT) # instans af Pin klassen AKA et Pin objekt
-B_PIN = 25
-buzzer = PWM(Pin(B_PIN, Pin.OUT),duty=0)
-tm = tm1637.TM1637(clk=Pin(2), dio=Pin(4))
+np = neopixel.NeoPixel(Pin(p), n)
+
+Tilt = Pin(17, Pin.IN)
+counter = 0
+
+first = Tilt.value()
+sleep(0.1)
+second = Tilt.value()
+
+tm = tm1637.TM1637(clk=Pin(18), dio=Pin(19))
+
+def clear_neopixel():
+    for i in range(n):
+        np[i] = (0, 0, 0)
+        np.write()
+
+def tilt_neopixel():
+    while True:
+        first = Tilt.value()
+        sleep(0.1)
+        second = Tilt.value()
+        global counter
+        
+        #print("TEST LOOP1")
+        if first == 1 and second == 0:
+            print("TEST LYS")
+            counter += 1
+            if counter >= 1 and counter < 12:
+                for i in range(counter):
+                    np[i] = (0, 170, 0)
+                    np.write()
+            if counter >= 12:
+                for i in range(n):
+                    np[i] = (170, 0, 0)
+                    np.write()
+            sleep(2)
+
+clear_neopixel()
+_thread.start_new_thread(tilt_neopixel, ())
 
 while True:
-    try:        
+    try:
         # Jeres kode skal starte her
-    #batteri
+        
+        #batteri
         analog_val = analog_pin.read()
-        volts = (analog_val * 0.00094638)*5
+        volts = (analog_val * 0.000350545)*5
         battery_percentage = volts*100 - 320
         print("Volt:", volts, "v")
-        print("The Batter percentage is:", battery_percentage / 2, "%")
-        realBattery = battery_percentage / 2
+        print("The Batter percentage is:", battery_percentage / 3, "%")
+        realBattery = battery_percentage / 3
+        realBattery
         
-        mqtt.web_print(battery_percentage / 2, 'Tolga12/feeds/Min Feed/csv') #Vigtig for feed/dashboard
+        mqtt.web_print(battery_percentage / 3, 'Tolga12/feeds/Min Feed/csv') #Vigtig for feed/dashboard
         tm.number(int(realBattery))
         sleep(4)
 
-        
-
-    #batteri
-    #GPS       
-        adafruit_gps_main.GPS()  
+        #GPS       
+        adafruit_gps_main.GPS() #Husk det er den grønne ledning ú
+    
            
-        if mqtt.besked == "svar_tilbage":
-            mqtt.web_Print("ESP32 her!")
         # Jeres kode skal slutte her
         sleep(0.5)
         if len(mqtt.besked) != 0: # Her nulstilles indkommende beskeder
@@ -51,3 +93,4 @@ while True:
         print('Ctrl-C pressed...exiting')
         mqtt.c.disconnect()
         mqtt.sys.exit()
+
